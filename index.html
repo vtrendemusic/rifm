@@ -1,0 +1,582 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Рифмовник</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@700;800&display=swap">
+<style>body{margin:0}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<style>
+/* Тетрадь рэпера: поиск сверху как главный инструмент, ниже гнёзда созвучий, размеченные маркерами */
+:root{
+  --paper:#EEF0F5; --card:#FFFFFF; --ink:#15161B; --muted:#5A5F6E; --line:#D6DAE4; --pen:#2E39C9;
+  --m1:#FF79B6; --m2:#FFD43A; --m3:#3FD3EC; --m4:#86DD74; --m5:#FFA24D; --m6:#B38BFF;
+  --mks:58%;
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#111218; --card:#1A1C24; --ink:#ECEEF4; --muted:#959BAC; --line:#2B2F3B; --pen:#929AFF;
+  --m1:#FF5FA8; --m2:#F2C21E; --m3:#22BCD6; --m4:#5EC24C; --m5:#F28A2E; --m6:#9C6BFF;
+  --mks:42%; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --paper:#111218; --card:#1A1C24; --ink:#ECEEF4; --muted:#959BAC; --line:#2B2F3B; --pen:#929AFF;
+  --m1:#FF5FA8; --m2:#F2C21E; --m3:#22BCD6; --m4:#5EC24C; --m5:#F28A2E; --m6:#9C6BFF;
+  --mks:42%; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:16px/1.5 var(--body);padding-inline:16px;padding-block:28px 64px}
+.wrap{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:36px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 20px}
+h1{font:800 clamp(30px,7vw,48px)/1 var(--display);letter-spacing:-.01em;margin:0}
+h1 .tail{background:linear-gradient(transparent 38%,color-mix(in srgb,var(--m2) var(--mks),transparent) 38%);padding-inline:2px}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.lang button{background:none;border:0;padding:5px 10px;font:600 12px/1 var(--mono);letter-spacing:.06em;color:var(--muted)}
+.lang button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.stats{margin:0;color:var(--muted);font:500 13px/1.4 var(--mono);font-variant-numeric:tabular-nums}
+.ghost{background:none;border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-size:14px;color:var(--muted)}
+.ghost[aria-pressed="true"]{border-color:var(--pen);color:var(--pen)}
+
+.search{display:flex;flex-direction:column;gap:10px}
+.lbl{font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+#q,#pq{width:100%;background:transparent;border:0;border-bottom:2px solid var(--ink);padding:6px 2px 10px;font:500 clamp(24px,5vw,32px)/1.2 var(--body);color:var(--ink);border-radius:0}
+#pq{font-size:clamp(20px,4vw,24px)}
+#q::placeholder,#pq::placeholder{color:var(--muted);opacity:.55}
+#q:focus,#pq:focus{outline:none;border-bottom-color:var(--pen)}
+
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-bottom:-12px}
+.tab{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:8px 0;font:600 16px/1 var(--body);color:var(--muted)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tab small{font:500 12px var(--mono);margin-left:6px;opacity:.7;font-variant-numeric:tabular-nums}
+.pane{display:flex;flex-direction:column;gap:36px}
+.pane[hidden]{display:none}
+.punch{display:grid;grid-template-columns:112px minmax(0,1fr);gap:4px 16px;padding:16px 0;border-bottom:1px solid var(--line)}
+.ptype{justify-self:start;align-self:start;margin-top:3px;font:600 10px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;padding:4px 6px;border-radius:4px;background:color-mix(in srgb,var(--pc) var(--mks),transparent)}
+.pbody{min-width:0;display:flex;flex-direction:column;gap:4px}
+.pbody h3{margin:0;font:600 17px/1.35 var(--body);text-wrap:balance}
+.pbody p{margin:0;color:var(--muted);font-size:15px;max-width:62ch}
+.pbody .words{margin-top:2px}
+.pbody .w{font-size:14px;color:var(--pen)}
+.pbody .tools{display:flex;gap:8px;margin-top:4px}
+.add select{font:inherit;font-size:14px}
+@media (max-width:560px){.punch{grid-template-columns:minmax(0,1fr)}}
+.hint{margin:0;font-size:13px;color:var(--muted)}
+.hint kbd{font:500 12px var(--mono);background:var(--card);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+
+.stress{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:14px;color:var(--muted)}
+.letters{display:flex;flex-wrap:wrap;gap:2px}
+.letters span,.letters button{font:500 20px/1 var(--mono);min-width:26px;height:34px;display:inline-grid;place-items:center;border-radius:5px}
+.letters button{border:1px dashed var(--line);background:var(--card)}
+.letters button.on{background:var(--pen);color:var(--card);border-color:var(--pen)}
+
+.results{display:flex;flex-direction:column;gap:18px}
+.group h3{margin:0 0 6px;font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--muted);display:flex;gap:8px;align-items:center}
+.group h3 .n{color:var(--ink)}
+.group.exact h3{color:var(--pen)}
+.empty{margin:0;color:var(--muted);font-size:15px;max-width:60ch}
+.try{display:flex;flex-wrap:wrap;gap:4px 2px;align-items:baseline}
+
+.words{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:baseline}
+.w{background:none;border:0;padding:2px 3px;border-radius:3px;font-size:17px;line-height:1.35;text-align:left;display:inline-flex;align-items:baseline;gap:4px}
+.w:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.w .hl{background:linear-gradient(transparent 42%,color-mix(in srgb,var(--mk,var(--m2)) var(--mks),transparent) 42%);border-radius:1px}
+.w b{font-weight:600;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+.w.me{outline:1.5px solid var(--ink);outline-offset:1px}
+.pron{font:400 12px var(--mono);color:var(--muted)}
+.syl{font:600 10px/1 var(--mono);color:var(--pen);border:1px solid currentColor;border-radius:3px;padding:2px 3px;align-self:center}
+.sep{color:var(--line);user-select:none}
+
+.cat-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding-bottom:10px}
+h2{font:700 18px/1.2 var(--display);margin:0}
+.vchips{display:flex;flex-wrap:wrap;gap:4px}
+.vchips button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:3px 11px;font:500 13px var(--mono);font-variant-numeric:tabular-nums}
+.vchips button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.vchips small{opacity:.6;margin-left:4px}
+
+.nests{display:flex;flex-direction:column}
+.nest{display:grid;grid-template-columns:112px minmax(0,1fr);gap:4px 16px;padding:14px 0;border-bottom:1px solid var(--line)}
+.nest .key{font:600 15px/1.6 var(--mono);color:var(--muted);padding-top:2px}
+.nest .key i{display:block;font:400 11px/1.3 var(--mono);font-style:normal;opacity:.8}
+.nest .note{grid-column:2;margin:0;font-size:13px;color:var(--muted)}
+.nest .tools{grid-column:2;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.group .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.tryBox{display:flex;flex-direction:column;gap:12px}
+.tryWords{min-height:3.2em;gap:6px 10px}
+.tryWords .w{font-size:19px}
+.more{align-self:flex-start;margin-top:12px}
+@media (prefers-reduced-motion:no-preference){.tryWords.swap{animation:trySwap .5s ease}@keyframes trySwap{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}}
+.x{background:none;border:0;color:var(--muted);font-size:14px;padding:0 3px;line-height:1}
+.x:hover{color:#D23B3B}
+.mini{border:1px solid var(--line);background:var(--card);border-radius:5px;padding:5px 8px;font:inherit;font-size:14px;color:var(--ink);min-width:0;width:200px;max-width:100%}
+.danger{color:#C8372F;border-color:color-mix(in srgb,#C8372F 40%,var(--line))}
+@media (max-width:560px){.nest{grid-template-columns:minmax(0,1fr)}.nest .note,.nest .tools{grid-column:1}}
+
+.add{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.add h2{font-size:15px}
+.add textarea{width:100%;min-height:96px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);font:15px/1.5 var(--body);padding:10px;resize:vertical}
+.add .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.primary{background:var(--pen);color:#fff;border:0;border-radius:6px;padding:8px 16px;font-weight:600}
+.msg{font-size:14px;color:var(--muted);margin:0}
+.msg.err{color:#C8372F}
+@media (prefers-reduced-motion:no-preference){.w,.vchips button{transition:background .12s}}
+.app{display:flex;flex-direction:column;gap:36px}
+.gate{display:flex;flex-direction:column;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px}
+.gate h2{font-size:17px}
+.gate p{margin:0;color:var(--muted);max-width:52ch}
+.gateRow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.gate a.primary{text-decoration:none;display:inline-block}
+#loginBox{min-height:40px}
+</style>
+</head><body>
+<main class="wrap">
+  <header class="top">
+    <div>
+      <h1><span id="h1a">Рифм</span><span class="tail">овник</span></h1>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div class="lang" id="langSw" role="group" aria-label="Язык каталога" hidden><button data-lang="ru" aria-pressed="true">RU</button><button data-lang="uk" aria-pressed="false">UA</button></div>
+      <p class="stats" id="stats">загружаю каталог…</p>
+      <button class="ghost" id="logout" hidden>Выйти</button>
+    </div>
+  </header>
+
+  <section class="gate" id="gate" hidden>
+    <h2 id="gateTitle">Рифмовник</h2>
+    <p id="gateText"></p>
+    <div id="loginBox" hidden></div>
+    <div class="gateRow">
+      <button class="primary" id="gateBtn" hidden></button>
+      <a class="primary" id="botLink" hidden target="_blank" rel="noopener"></a>
+      <button class="ghost" id="relogin" hidden></button>
+    </div>
+  </section>
+
+  <div class="app" id="app" hidden>
+    <nav class="tabs" role="tablist" aria-label="Разделы">
+      <button class="tab" role="tab" id="tab-rhymes" data-tab="rhymes" aria-selected="true" aria-controls="paneRhymes"><span data-i18n="tabR">Рифмы</span><small id="cntR"></small></button>
+      <button class="tab" role="tab" id="tab-punches" data-tab="punches" aria-selected="false" aria-controls="panePunches" hidden><span data-i18n="tabP">Панчи</span><small id="cntP"></small></button>
+    </nav>
+
+    <div class="pane" id="paneRhymes" role="tabpanel" aria-labelledby="tab-rhymes">
+      <section class="search" aria-label="Поиск рифм">
+        <label class="lbl" for="q" data-i18n="qLabel">Рифма на слово или фразу</label>
+        <input id="q" type="search" autocomplete="off" spellcheck="false" enterkeyhint="search" placeholder="кайф" data-i18n-ph="qPh">
+        <p class="hint" data-i18n-html="qHint">Ударение можно отметить заглавной буквой: <kbd>дЕньги</kbd> или плюсом: <kbd>д+еньги</kbd></p>
+        <div class="stress" id="stressPick" hidden></div>
+        <div class="results" id="results"></div>
+      </section>
+
+      <section class="tryBox" id="tryBox" aria-label="Попробуй">
+        <div class="cat-head">
+          <h2 data-i18n="tryTitle">Попробуй</h2>
+          <button class="ghost" id="tryNext" data-i18n="tryNext">Другие</button>
+        </div>
+        <div class="words tryWords" id="tryWords" aria-live="polite"></div>
+        <p class="hint" data-i18n="tryHint">Слова меняются каждые 15 секунд. Нажми на любое — покажу рифмы.</p>
+      </section>
+    </div>
+
+    <div class="pane" id="panePunches" role="tabpanel" aria-labelledby="tab-punches" hidden>
+      <section class="search" aria-label="Поиск по панчам">
+        <label class="lbl" for="pq" data-i18n="pqLabel">Поиск по панчам</label>
+        <input id="pq" type="search" autocomplete="off" spellcheck="false" placeholder="Бунин, Левитан, омоним" data-i18n-ph="pqPh">
+        <div class="vchips" id="pchips" role="group" aria-label="Тип панча"></div>
+      </section>
+      <div class="nests" id="punches"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ---------- языки ---------- */
+const T={
+ ru:{h1a:'Рифм',tabR:'Рифмы',tabP:'Панчи',loading:'загружаю каталог…',failLoad:'Каталог не ответил. Закрой и открой Рифмовник ещё раз.',
+  qLabel:'Рифма на слово или фразу',qPh:'кайф',qHint:'Ударение можно отметить заглавной буквой: <kbd>дЕньги</kbd> или плюсом: <kbd>д+еньги</kbd>',
+  tryTitle:'Попробуй',tryNext:'Другие',tryHint:'Слова меняются каждые 15 секунд. Нажми на любое — покажу рифмы.',
+  more:'Показать ещё',shown:(a,b)=>`Показано ${a} из ${b}`,all:'все',nestsW:['гнездо','гнезда','гнёзд'],rhymesW:['рифма','рифмы','рифм'],
+  guessed:'Ударение угадал, поправь:',stressL:'Ударение:',stressOn:'ударение на',needVowel:'Нужна хотя бы одна гласная.',
+  sameNest:'Из того же гнезда',gExact:'Точные',gClose:'Созвучия',gEdge:'На грани',topN:n=>`Показаны лучшие ${n}.`,
+  noRhymes:k=>`В каталоге пока нет созвучий на <b>[${k}]</b>`,sylTitle:n=>`совпадает ${n} слога`,slow:'Слишком много запросов. Подожди минуту и попробуй снова.',
+  pqLabel:'Поиск по панчам',pqPh:'Бунин, Левитан, омоним',
+  ptypes:{'омоним':['Омонимы','омоним'],'отсылка':['Отсылки','отсылка'],'игра слов':['Игра слов','игра слов'],'двойной смысл':['Двойной смысл','двойной смысл']},
+  pEmpty:'Панчей пока нет',pNone:'Ничего не нашлось. Попробуй другое слово или сбрось фильтр.',pFail:'Панчи не загрузились. Закрой и открой Рифмовник ещё раз.',rhymesOn:w=>`Рифмы на «${w}»`,
+  notTg:'Рифмовник открывается из Telegram: нажми кнопку «Рифмовник» в боте.',
+  noAccess:'Рифмовник открыт только участникам закрытой группы. Оформи подписку в боте и возвращайся.',
+  badAuth:'Не получилось проверить вход. Закрой и открой Рифмовник ещё раз.',back:'Вернуться в бота',gateTitle:'Закрытый доступ',logout:'Выйти',
+  webLogin:'Рифмовник открыт участникам закрытого клуба. Войди через Telegram, и я проверю подписку.',
+  noAccessWeb:'Этот Telegram-аккаунт не состоит в закрытом клубе. Оформи подписку в боте или войди другим аккаунтом.',
+  subscribe:'Оформить подписку',relogin:'Войти другим аккаунтом',loginFail:'Не получилось войти. Попробуй ещё раз.'},
+ uk:{h1a:'Рим',tabR:'Рими',tabP:'Панчі',loading:'завантажую каталог…',failLoad:'Каталог не відповів. Закрий і відкрий Римовник ще раз.',
+  qLabel:'Рима до слова чи фрази',qPh:'серце',qHint:'Наголос можна позначити великою літерою: <kbd>сЕрце</kbd> або плюсом: <kbd>с+ерце</kbd>',
+  tryTitle:'Спробуй',tryNext:'Інші',tryHint:'Слова змінюються кожні 15 секунд. Натисни на будь-яке — покажу рими.',
+  more:'Показати ще',shown:(a,b)=>`Показано ${a} з ${b}`,all:'всі',nestsW:['гніздо','гнізда','гнізд'],rhymesW:['рима','рими','рим'],
+  guessed:'Наголос вгадав, виправ:',stressL:'Наголос:',stressOn:'наголос на',needVowel:'Потрібна хоча б одна голосна.',
+  sameNest:'З того ж гнізда',gExact:'Точні',gClose:'Співзвуччя',gEdge:'На межі',topN:n=>`Показано найкращі ${n}.`,
+  noRhymes:k=>`У каталозі поки немає співзвуч до <b>[${k}]</b>`,sylTitle:n=>`збігається складів: ${n}`,slow:'Забагато запитів. Зачекай хвилину і спробуй знову.',
+  pqLabel:'Пошук по панчах',pqPh:'омонім, відсилка',
+  ptypes:{'омоним':['Омоніми','омонім'],'отсылка':['Відсилки','відсилка'],'игра слов':['Гра слів','гра слів'],'двойной смысл':['Подвійний зміст','подвійний зміст']},
+  pEmpty:'Панчів поки немає',pNone:'Нічого не знайшлося. Спробуй інше слово або скинь фільтр.',pFail:'Панчі не завантажилися. Закрий і відкрий Римовник ще раз.',rhymesOn:w=>`Рими до «${w}»`,
+  notTg:'Римовник відкривається з Telegram: натисни кнопку «Рифмовник» у боті.',
+  noAccess:'Римовник відкритий лише учасникам закритої групи. Оформи підписку в боті й повертайся.',
+  badAuth:'Не вдалося перевірити вхід. Закрий і відкрий Римовник ще раз.',back:'Повернутися в бот',gateTitle:'Закритий доступ',logout:'Вийти',
+  webLogin:'Римовник відкритий учасникам закритого клубу. Увійди через Telegram, і я перевірю підписку.',
+  noAccessWeb:'Цей Telegram-акаунт не входить до закритого клубу. Оформи підписку в боті або увійди іншим акаунтом.',
+  subscribe:'Оформити підписку',relogin:'Увійти іншим акаунтом',loginFail:'Не вдалося увійти. Спробуй ще раз.'}
+};
+let lang='ru';
+const t=k=>T[lang][k];
+
+/* ---------- фонетика ---------- */
+const ACUTE='́', VOWELS='аеёиоуыэюяєії';
+const LETTER=/[а-яёєіїґ]/;
+const isV=c=>VOWELS.includes(c);
+const PH={
+ ru:{VS:{'а':'а','я':'а','о':'о','ё':'о','у':'у','ю':'у','э':'э','е':'э','и':'и','ы':'и'},
+     VU:{'а':'а','о':'а','я':'а','у':'у','ю':'у','е':'и','э':'и','и':'и','ы':'и','ё':'о'},devoice:true},
+ uk:{VS:{'а':'а','я':'а','о':'о','у':'у','ю':'у','е':'э','є':'э','и':'и','і':'и','ї':'и','ё':'о','ы':'и','э':'э'},
+     VU:{'а':'а','я':'а','о':'о','у':'у','ю':'у','е':'и','є':'и','и':'и','і':'и','ї':'и','ё':'о','ы':'и','э':'и'},devoice:false}
+};
+const DEV={'б':'п','в':'ф','г':'к','д':'т','ж':'ш','з':'с'};
+const VOI={'п':'б','ф':'в','к':'г','т':'д','ш':'ж','с':'з'};
+const VOICELESS=new Set([...'пфктшсхцчщ']), VOICED_OBS=new Set([...'бгджз']);
+const F={'п':'lab stop 0','б':'lab stop 1','ф':'lab fric 0','в':'lab fric 1','м':'lab nas s','т':'den stop 0','д':'den stop 1','с':'den fric 0','з':'den fric 1','ц':'den affr 0','н':'den nas s','л':'den liq s','р':'den liq s','ш':'pal fric 0','ж':'pal fric 1','щ':'pal fric 0','ч':'pal affr 0','к':'vel stop 0','г':'vel stop 1','х':'vel fric 0','h':'vel fric 1','j':'pal glide s'};
+
+function parse(raw){
+  const src=(raw||'').normalize('NFC');
+  const hasLower=/[а-яёєіїґ]/.test(src);
+  let out='',stress=-1,plusNext=false,upperIdx=-1,yoIdx=-1,explicit=false;
+  for(const ch of src){
+    if(ch===ACUTE||ch==="'"||ch==='’'||ch==='`'||ch==='ʼ'){const k=out.length-1;if(k>=0&&isV(out[k])){stress=k;explicit=true}continue}
+    if(ch==='+'){plusNext=true;continue}
+    const lo=ch.toLowerCase();
+    if(LETTER.test(lo)){
+      if(isV(lo)){
+        if(plusNext){stress=out.length;explicit=true;plusNext=false}
+        if(ch!==lo&&hasLower&&upperIdx<0)upperIdx=out.length;
+        if(lo==='ё'&&yoIdx<0)yoIdx=out.length;
+      }
+      out+=lo;
+    }else if(/[\s\-–—,.]/.test(ch)){if(out&&!out.endsWith(' '))out+=' '}
+  }
+  out=out.trimEnd();
+  if(!explicit){if(upperIdx>=0)stress=upperIdx;else if(yoIdx>=0)stress=yoIdx}
+  const vidx=[];for(let i=0;i<out.length;i++)if(isV(out[i]))vidx.push(i);
+  if(stress<0&&vidx.length===1)stress=vidx[0];
+  if(stress>=out.length)stress=-1;
+  return{disp:out,stress,vidx,key:out.replace(/ё/g,'е')};
+}
+function normKey(s){return(s||'').normalize('NFC').toLowerCase().replace(/[́'’`ʼ+]/g,'').replace(/ё/g,'е').replace(/[^a-zа-яєіїґ0-9]+/g,' ').trim()}
+
+function phon(p,lg){
+  if(!p||p.stress<0)return null;
+  const cfg=PH[lg||lang];
+  let s=p.disp.slice(0,p.stress)+p.disp[p.stress].toUpperCase()+p.disp.slice(p.stress+1);
+  s=s.replace(/ть?с[яЯ](?= |$)/g,m=>'ц'+m.slice(-1)).replace(/[сз]ч/g,'щ').replace(/стн/g,'сн').replace(/здн/g,'зн').replace(/вств/g,'ств').replace(/лнц/g,'нц').replace(/[ьъ]/g,'');
+  const tk=[];
+  for(const ch of s){
+    if(ch===' '){if(tk.length)tk[tk.length-1].end=true;continue}
+    const lo=ch.toLowerCase(),st=ch!==lo;
+    if(isV(lo))tk.push({c:st?cfg.VS[lo]:cfg.VU[lo],v:true,st});
+    else{
+      let c=lo==='й'?'j':lo;
+      if(lg==='uk'||(!lg&&lang==='uk')){if(c==='г')c='h';else if(c==='ґ')c='г'}
+      tk.push({c,v:false});
+    }
+  }
+  if(tk.length)tk[tk.length-1].end=true;
+  if(cfg.devoice)for(let i=tk.length-1;i>=0;i--){
+    const x=tk[i];if(x.v)continue;const nx=tk[i+1];
+    if(x.end||!nx){if(DEV[x.c])x.c=DEV[x.c];continue}
+    if(!nx.v){if(VOICELESS.has(nx.c)&&DEV[x.c])x.c=DEV[x.c];else if(VOICED_OBS.has(nx.c)&&VOI[x.c])x.c=VOI[x.c]}
+  }
+  const si=tk.findIndex(x=>x.st);if(si<0)return null;
+  let j=si-1,pre='';while(j>=0&&!tk[j].v){pre=tk[j].c+pre;j--}
+  const preV=[];for(let k=j;k>=0&&preV.length<2;k--)if(tk[k].v)preV.push(tk[k].c);
+  const C=[''],V=[];
+  for(let k=si+1;k<tk.length;k++){const x=tk[k];if(x.v){V.push(x.c);C.push('')}else C[C.length-1]+=x.c}
+  let key=(tk[si].c.toUpperCase()+C.map((c,i)=>c+(V[i]||'')).join('')).replace(/j/g,'й');
+  if((lg||lang)==='uk')key=key.replace(/Э/g,'Е').replace(/г/g,'ґ').replace(/h/g,'г');
+  return{sv:tk[si].c,opor:pre.slice(-1),preV,C,V,key};
+}
+function cc(a,b){
+  if(a===b)return 0;
+  const x=(F[a]||'? ? ?').split(' '),y=(F[b]||'? ? ?').split(' ');
+  let d=0;if(x[0]!==y[0])d+=.45;if(x[1]!==y[1])d+=.45;if(x[2]!==y[2])d+=.1;
+  if(d===.1)return .2;return Math.min(1,Math.max(.3,d));
+}
+function clSim(a,b){
+  if(a===b)return 1;if(!a||!b)return .25;
+  const A=[...a],B=[...b],n=A.length,m=B.length,INS=.6;
+  const D=Array.from({length:n+1},()=>Array(m+1).fill(0));
+  for(let i=0;i<=n;i++)D[i][0]=i*INS;for(let k=0;k<=m;k++)D[0][k]=k*INS;
+  for(let i=1;i<=n;i++)for(let k=1;k<=m;k++)D[i][k]=Math.min(D[i-1][k]+INS,D[i][k-1]+INS,D[i-1][k-1]+cc(A[i-1],B[k-1]));
+  return Math.max(0,1-D[n][m]/Math.max(n,m));
+}
+function compare(a,b){
+  if(!a||!b||a.sv!==b.sv)return null;
+  const na=a.V.length,nb=b.V.length,n=Math.max(na,nb);
+  let sum=0,ws=0;
+  for(let i=0;i<=n;i++){const w=i===0?2:(i===n?1.4:1);const s=(i<a.C.length&&i<b.C.length)?clSim(a.C[i],b.C[i]):0;sum+=w*s;ws+=w}
+  const cons=sum/ws;
+  let vm=0;for(let i=0;i<Math.min(na,nb);i++)if(a.V[i]===b.V[i])vm++;
+  const vow=n?vm/n:1;
+  const pre=(!a.opor&&!b.opor)?1:(!a.opor||!b.opor)?.4:1-cc(a.opor,b.opor);
+  let pm=0;for(let i=0;i<Math.min(a.preV.length,b.preV.length);i++){if(a.preV[i]===b.preV[i])pm++;else break}
+  const total=(.6*cons+.25*vow+.15*pre+.04*pm)*(na===nb?1:.55);
+  let label=null;
+  if(na===nb&&vow===1&&cons>=.97)label=(pre===1&&(a.opor||b.opor))?'rich':'exact';
+  else if(na===nb&&vow===1&&cons>=.45)label='close';
+  else if(na===nb&&total>=.5)label='edge';
+  const syl=(label&&label!=='edge')?1+vm+pm:0;
+  return{total,label,syl};
+}
+
+/* ---------- записи каталога ---------- */
+const cache=new Map();
+function entry(raw){
+  const ck=lang+'\u0000'+raw;
+  if(cache.has(ck))return cache.get(ck);
+  const s=(raw||'').normalize('NFC').trim();
+  const m=s.match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
+  const p=parse(m?m[2]:s);
+  const e={raw:s,p,shown:m?m[1].trim():null,pron:m?m[2].trim():null,ph:phon(p,lang)};
+  e.keys=new Set([p.key,normKey(e.shown||s)]);
+  cache.set(ck,e);return e;
+}
+
+/* ---------- состояние ---------- */
+const tg=window.Telegram&&window.Telegram.WebApp;
+const INIT=(tg&&tg.initData)||'';
+/* Страница на vtrendemusic.info, проверка доступа и поиск — на сервере бота */
+const API=/(^|\.)vtrendemusic\.info$/.test(location.hostname)?'https://vtrendemusic.com/rifm/api/':'api/';
+let TOKEN='';try{TOKEN=localStorage.getItem('rf-token')||''}catch{}
+let me=null,tab='rhymes',forced=null,pType='all',tryHover=false;
+const PS={ru:null,uk:null};
+const PTYPES=[['омоним',6],['отсылка',3],['игра слов',1],['двойной смысл',5]];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function colorOf(id){let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))>>>0;return 1+h%6}
+function plural(n,[a,b,c]){const m=n%10,h=n%100;return m===1&&h!==11?a:(m>=2&&m<=4&&(h<12||h>14))?b:c}
+const isOwner=()=>me&&me.role==='owner';
+
+if(tg&&INIT){try{
+  tg.ready();tg.expand();
+  if(tg.colorScheme)document.documentElement.dataset.theme=tg.colorScheme;
+  const bg=getComputedStyle(document.documentElement).getPropertyValue('--paper').trim();
+  if(bg){tg.setHeaderColor(bg);tg.setBackgroundColor(bg)}
+}catch{}}
+
+async function api(p,opts={}){
+  const auth=INIT?{'X-Init-Data':INIT}:TOKEN?{'Authorization':'Bearer '+TOKEN}:{};
+  const r=await fetch(API+p,{...opts,headers:{...auth,...(opts.headers||{})},cache:'no-store'});
+  let j=null;try{j=await r.json()}catch{}
+  if(!r.ok)throw{status:r.status,...(j||{})};
+  return j;
+}
+
+function applyI18n(){
+  document.documentElement.lang=lang==='uk'?'uk':'ru';
+  $('h1a').textContent=t('h1a');
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n)});
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{el.innerHTML=t(el.dataset.i18nHtml)});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{el.placeholder=t(el.dataset.i18nPh)});
+  document.querySelectorAll('[data-lang]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.lang===lang));
+}
+function gate(text,withBack){
+  $('app').hidden=true;$('gate').hidden=false;$('stats').textContent='';$('logout').hidden=true;
+  $('gateTitle').textContent=t('gateTitle');$('gateText').textContent=text;
+  const b=$('gateBtn');b.hidden=!(withBack&&INIT);b.textContent=t('back');
+  $('loginBox').hidden=true;$('botLink').hidden=true;$('relogin').hidden=true;
+}
+function setToken(v){TOKEN=v;try{v?localStorage.setItem('rf-token',v):localStorage.removeItem('rf-token')}catch{}}
+let BOT='';
+async function botName(){if(!BOT){try{BOT=(await api('config')).bot||''}catch{}}return BOT}
+/* На сайте: кнопка «Войти через Telegram». Домен vtrendemusic.info должен быть указан у бота в BotFather (/setdomain) */
+async function showLogin(text){
+  gate(text||t('webLogin'),false);
+  const bot=await botName();if(!bot)return;
+  const box=$('loginBox');box.hidden=false;box.innerHTML='';
+  const s=document.createElement('script');s.async=true;s.src='https://telegram.org/js/telegram-widget.js?22';
+  s.setAttribute('data-telegram-login',bot);s.setAttribute('data-size','large');s.setAttribute('data-radius','6');
+  s.setAttribute('data-onauth','onTgAuth(user)');
+  box.appendChild(s);
+}
+async function notMember(){
+  if(INIT){gate(t('noAccess'),true);return}
+  gate(t('noAccessWeb'),false);
+  const bot=await botName();
+  if(bot){const a=$('botLink');a.href='https://t.me/'+bot;a.textContent=t('subscribe');a.hidden=false}
+  const r=$('relogin');r.textContent=t('relogin');r.hidden=false;
+}
+window.onTgAuth=async user=>{
+  try{const r=await api('login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(user)});setToken(r.token);start()}
+  catch(e){if(e.status===403&&e.error==='not_member')notMember();else showLogin(t('loginFail'))}
+};
+function renderStats(){
+  const s=me&&me.stats[lang];if(!s)return;
+  $('stats').textContent=`${s.nests} ${plural(s.nests,t('nestsW'))} · ${s.words} ${plural(s.words,t('rhymesW'))}`;
+  $('cntR').textContent=s.nests;
+  $('cntP').textContent=s.punches!==undefined?s.punches:'';
+}
+function setLang(l){
+  lang=isOwner()&&l==='uk'?'uk':'ru';
+  try{localStorage.setItem('rf-lang',lang)}catch{}
+  forced=null;pType='all';pLimit=P_STEP;
+  $('q').value='';$('pq').value='';$('results').innerHTML='';$('stressPick').hidden=true;
+  applyI18n();renderStats();loadTry(false);
+  if(tab==='punches')loadPunches();
+}
+function setTab(x){
+  tab=x==='punches'&&isOwner()?'punches':'rhymes';
+  $('paneRhymes').hidden=tab!=='rhymes';$('panePunches').hidden=tab!=='punches';
+  $('tab-rhymes').setAttribute('aria-selected',tab==='rhymes');$('tab-punches').setAttribute('aria-selected',tab==='punches');
+  try{localStorage.setItem('rf-tab',tab)}catch{}
+  if(tab==='punches')loadPunches();
+}
+
+function wordHTML(e,mk,opts={}){
+  const cls='w'+(opts.me?' me':'');
+  const data=`data-w="${esc(e.raw)}"`;
+  const syl=opts.syl>=3?`<span class="syl" title="${esc(t('sylTitle')(opts.syl))}">×${opts.syl}</span>`:'';
+  if(e.shown){
+    return `<button class="${cls}" ${data} style="--mk:var(--m${mk})"><span class="hl">${esc(e.shown)}</span><span class="pron">[${esc(e.pron)}]</span>${syl}</button>`;
+  }
+  const {disp,stress}=e.p;
+  if(stress<0)return `<button class="${cls}" ${data}>${esc(disp)}</button>`;
+  return `<button class="${cls}" ${data} style="--mk:var(--m${mk})">${esc(disp.slice(0,stress))}<span class="hl"><b>${esc(disp[stress])}</b>${esc(disp.slice(stress+1))}</span>${syl}</button>`;
+}
+
+/* ---------- «Попробуй»: случайные слова с сервера, меняются каждые 15 секунд ---------- */
+async function loadTry(anim){
+  const l=lang;
+  try{
+    const r=await api(`try?lang=${l}`);if(l!==lang)return;
+    const box=$('tryWords');
+    box.innerHTML=r.words.map(([w,id])=>wordHTML(entry(w),colorOf(id))).join('<span class="sep">·</span>');
+    if(anim){box.classList.remove('swap');void box.offsetWidth;box.classList.add('swap')}
+  }catch{}
+}
+setInterval(()=>{if(!me||document.hidden||tryHover||tab!=='rhymes')return;loadTry(true)},15000);
+
+/* ---------- поиск идёт на сервере ---------- */
+let seq=0,tmr;
+function runSearch(){
+  const raw=$('q').value,my=++seq,l=lang;
+  if(!raw.trim()){$('stressPick').hidden=true;$('results').innerHTML='';return}
+  const qs=`search?lang=${l}&q=${encodeURIComponent(raw)}`+(forced!==null?`&stress=${forced}`:'');
+  api(qs).then(r=>{if(my===seq&&l===lang)renderResult(r,raw)},e=>{
+    if(my!==seq)return;
+    $('results').innerHTML=`<p class="empty">${e.status===429?t('slow'):t('failLoad')}</p>`;
+  });
+}
+function renderStressPicker(pk){
+  const box=$('stressPick');
+  if(pk.vidx.length<2){box.hidden=true;return}
+  box.hidden=false;
+  const letters=[...pk.disp].map((c,i)=>isV(c)?`<button data-stress="${i}" class="${i===pk.stress?'on':''}" aria-label="${t('stressOn')} ${c}">${esc(c)}</button>`:`<span>${c===' '?'&nbsp;':esc(c)}</span>`).join('');
+  box.innerHTML=`<span>${pk.guessed?t('guessed'):t('stressL')}</span><div class="letters">${letters}</div>`;
+}
+function renderResult(r,raw){
+  const res=$('results');
+  if(r.empty){$('stressPick').hidden=true;res.innerHTML='';return}
+  if(r.needVowel){$('stressPick').hidden=true;res.innerHTML=`<p class="empty">${t('needVowel')}</p>`;return}
+  if(r.pick)renderStressPicker(r.pick);else $('stressPick').hidden=true;
+  const qk=normKey(raw);let html='';
+  for(const n of r.own){
+    const c=colorOf(n.id),es=n.words.map(entry);
+    html+=`<div class="group exact"><h3>${t('sameNest')} <span class="n">${es.length}</span> <span>[${esc(n.key)}]</span></h3><div class="words">${es.map(e=>wordHTML(e,c,{me:e.keys.has(qk)})).join('<span class="sep">/</span>')}</div>${n.note?`<p class="hint" style="margin-top:4px">${esc(n.note)}</p>`:''}</div>`;
+  }
+  const titles={exact:t('gExact'),close:t('gClose'),edge:t('gEdge')};
+  for(const g of r.groups){
+    html+=`<div class="group ${g.k}"><h3>${titles[g.k]} <span class="n">${g.total}</span></h3><div class="words">${g.items.map(([w,id,syl])=>wordHTML(entry(w),colorOf(id),{syl})).join('<span class="sep">/</span>')}</div>${g.total>g.items.length?`<p class="hint" style="margin-top:4px">${t('topN')(g.items.length)}</p>`:''}</div>`;
+  }
+  if(!html)html=`<p class="empty">${t('noRhymes')(esc(r.key||raw))}.</p>`;
+  res.innerHTML=html;
+}
+
+/* ---------- панчи: только в полной версии ---------- */
+const P_STEP=40;
+let pLimit=P_STEP;
+async function loadPunches(){
+  const l=lang;
+  if(PS[l]){renderPunches();return}
+  $('punches').innerHTML=`<p class="empty" style="padding-top:14px">${t('loading')}</p>`;
+  try{const r=await api(`punches?lang=${l}`);PS[l]=r.punches;if(l===lang)renderPunches()}
+  catch{if(l===lang)$('punches').innerHTML=`<p class="empty" style="padding-top:14px">${t('pFail')}</p>`}
+}
+function renderPunches(){
+  const punches=PS[lang];if(!punches||tab!=='punches')return;
+  const counts={all:punches.length};for(const [k] of PTYPES)counts[k]=0;
+  for(const p of punches)if(counts[p.type]!==undefined)counts[p.type]++;
+  $('pchips').innerHTML=[['all'],...PTYPES].map(([k])=>`<button data-ptype="${esc(k)}" aria-pressed="${pType===k}">${esc(k==='all'?t('all'):t('ptypes')[k][0].toLowerCase())}<small>${counts[k]}</small></button>`).join('');
+  const q=normKey($('pq').value);
+  const list=punches.filter(p=>(pType==='all'||p.type===pType)&&(!q||normKey([p.title,p.note,p.type,(t('ptypes')[p.type]||[])[1],...(p.words||[])].join(' ')).includes(q)))
+    .sort((a,b)=>(b.created||'').localeCompare(a.created||'')||(a.title||'').localeCompare(b.title||'',lang));
+  if(!punches.length){$('punches').innerHTML=`<p class="empty" style="padding-top:14px">${t('pEmpty')}.</p>`;return}
+  if(!list.length){$('punches').innerHTML=`<p class="empty" style="padding-top:14px">${t('pNone')}</p>`;return}
+  /* Рисуем порциями по 40; следующая порция догружается, когда низ списка появляется на экране */
+  const shown=list.slice(0,pLimit);
+  const tail=list.length>pLimit?`<div class="pMoreBox" id="pMoreBox"><button class="ghost more" id="pMore">${t('more')}</button><p class="hint">${t('shown')(shown.length,list.length)}</p></div>`:'';
+  $('punches').innerHTML=shown.map(p=>{
+    const ty=PTYPES.find(x=>x[0]===p.type)||['?',2];
+    const label=(t('ptypes')[p.type]||[p.type,p.type])[1];
+    const words=(p.words||[]).map(w=>`<button class="w" data-w="${esc(w)}" title="${esc(t('rhymesOn')(w))}">${esc(w)}</button>`).join('<span class="sep">·</span>');
+    return `<article class="punch"><span class="ptype" style="--pc:var(--m${ty[1]})">${esc(label||'')}</span><div class="pbody"><h3>${esc(p.title||'')}</h3>${p.note?`<p>${esc(p.note)}</p>`:''}${words?`<div class="words">${words}</div>`:''}</div></article>`;
+  }).join('')+tail;
+  const mb=$('pMoreBox');if(mb&&pObserver)pObserver.observe(mb);
+}
+const pObserver='IntersectionObserver' in window?new IntersectionObserver(es=>{
+  if(es.some(e=>e.isIntersecting)&&tab==='punches'){pObserver.disconnect();pLimit+=P_STEP;renderPunches()}
+},{rootMargin:'600px 0px'}):null;
+
+/* ---------- события ---------- */
+$('q').addEventListener('input',()=>{forced=null;clearTimeout(tmr);tmr=setTimeout(runSearch,250)});
+$('q').addEventListener('keydown',ev=>{if(ev.key==='Enter'){clearTimeout(tmr);runSearch();ev.target.blur()}});
+let ptmr;
+$('pq').addEventListener('input',()=>{clearTimeout(ptmr);ptmr=setTimeout(()=>{pLimit=P_STEP;renderPunches()},110)});
+$('tryBox').addEventListener('mouseenter',()=>{tryHover=true});
+$('tryBox').addEventListener('mouseleave',()=>{tryHover=false});
+$('tryBox').addEventListener('focusin',()=>{tryHover=true});
+$('tryBox').addEventListener('focusout',()=>{tryHover=false});
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest('button');if(!b)return;
+  if(b.id==='gateBtn'){if(tg)tg.close();return}
+  if(b.id==='relogin'||b.id==='logout'){setToken('');me=null;showLogin();return}
+  if(b.dataset.lang){if(b.dataset.lang!==lang)setLang(b.dataset.lang);return}
+  if(b.dataset.tab){setTab(b.dataset.tab);return}
+  if(b.dataset.ptype){pType=b.dataset.ptype;pLimit=P_STEP;renderPunches();return}
+  if(b.id==='pMore'){pLimit+=P_STEP;renderPunches();return}
+  if(b.id==='tryNext'){loadTry(true);return}
+  if(b.dataset.w!==undefined){
+    if(tab!=='rhymes')setTab('rhymes');
+    $('q').value=b.dataset.w;forced=null;clearTimeout(tmr);runSearch();
+    $('q').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});return}
+  if(b.dataset.stress!==undefined){forced=+b.dataset.stress;runSearch();return}
+});
+
+/* ---------- вход: сервер проверяет подпись Telegram и членство в группе ---------- */
+async function start(){
+  applyI18n();
+  if(!INIT&&!TOKEN){showLogin();return}
+  try{me=await api('me')}
+  catch(e){
+    if(e.status===403&&e.error==='not_member')notMember();
+    else if(e.status===401&&!INIT){setToken('');showLogin()}
+    else if(e.status===401)gate(t('badAuth'),true);
+    else gate(t('failLoad'),true);
+    return;
+  }
+  $('gate').hidden=true;$('app').hidden=false;$('logout').hidden=!!INIT;$('logout').textContent=t('logout');
+  let l='ru',x='rhymes';
+  if(isOwner()){
+    $('langSw').hidden=false;$('tab-punches').hidden=false;
+    try{l=localStorage.getItem('rf-lang')||l;x=localStorage.getItem('rf-tab')||x}catch{}
+  }
+  setLang(l);setTab(x);
+}
+start();
+</script>
+</body></html>
