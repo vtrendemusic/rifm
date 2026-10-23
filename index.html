@@ -128,6 +128,8 @@ h2{font:700 18px/1.2 var(--display);margin:0}
 .gate p{margin:0;color:var(--muted);max-width:52ch}
 .gateRow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .gate a.primary{text-decoration:none;display:inline-block}
+#tgOpen{font-size:16px;padding:10px 18px}
+#orPhone{margin-top:6px}
 #loginBox{min-height:40px}
 </style>
 </head><body>
@@ -146,6 +148,8 @@ h2{font:700 18px/1.2 var(--display);margin:0}
   <section class="gate" id="gate" hidden>
     <h2 id="gateTitle">Рифмовник</h2>
     <p id="gateText"></p>
+    <a class="primary" id="tgOpen" hidden>Открыть в Telegram</a>
+    <p class="hint" id="orPhone" hidden></p>
     <div id="loginBox" hidden></div>
     <div class="gateRow">
       <button class="primary" id="gateBtn" hidden></button>
@@ -206,7 +210,8 @@ const T={
   notTg:'Рифмовник открывается из Telegram: нажми кнопку «Рифмовник» в боте.',
   noAccess:'Рифмовник открыт только участникам закрытой группы. Оформи подписку в боте и возвращайся.',
   badAuth:'Не получилось проверить вход. Закрой и открой Рифмовник ещё раз.',back:'Вернуться в бота',gateTitle:'Закрытый доступ',logout:'Выйти',
-  webLogin:'Рифмовник открыт участникам закрытого клуба. Войди через Telegram, и я проверю подписку.',
+  webLogin:'Рифмовник открыт участникам закрытого клуба. Открой его в Telegram — вход произойдёт сам, без номера и кодов.',
+  openTg:'Открыть в Telegram',orPhone:'Или войди прямо в браузере — Telegram попросит номер телефона и пришлёт подтверждение:',
   noAccessWeb:'Этот Telegram-аккаунт не состоит в закрытом клубе. Оформи подписку в боте или войди другим аккаунтом.',
   subscribe:'Оформить подписку',relogin:'Войти другим аккаунтом',loginFail:'Не получилось войти. Попробуй ещё раз.'},
  uk:{h1a:'Рим',tabR:'Рими',tabP:'Панчі',loading:'завантажую каталог…',failLoad:'Каталог не відповів. Закрий і відкрий Римовник ще раз.',
@@ -222,7 +227,8 @@ const T={
   notTg:'Римовник відкривається з Telegram: натисни кнопку «Рифмовник» у боті.',
   noAccess:'Римовник відкритий лише учасникам закритої групи. Оформи підписку в боті й повертайся.',
   badAuth:'Не вдалося перевірити вхід. Закрий і відкрий Римовник ще раз.',back:'Повернутися в бот',gateTitle:'Закритий доступ',logout:'Вийти',
-  webLogin:'Римовник відкритий учасникам закритого клубу. Увійди через Telegram, і я перевірю підписку.',
+  webLogin:'Римовник відкритий учасникам закритого клубу. Відкрий його в Telegram — вхід відбудеться сам, без номера і кодів.',
+  openTg:'Відкрити в Telegram',orPhone:'Або увійди просто в браузері — Telegram попросить номер телефону і надішле підтвердження:',
   noAccessWeb:'Цей Telegram-акаунт не входить до закритого клубу. Оформи підписку в боті або увійди іншим акаунтом.',
   subscribe:'Оформити підписку',relogin:'Увійти іншим акаунтом',loginFail:'Не вдалося увійти. Спробуй ще раз.'}
 };
@@ -389,7 +395,7 @@ function gate(text,withBack){
   $('app').hidden=true;$('gate').hidden=false;$('stats').textContent='';$('logout').hidden=true;
   $('gateTitle').textContent=t('gateTitle');$('gateText').textContent=text;
   const b=$('gateBtn');b.hidden=!(withBack&&INIT);b.textContent=t('back');
-  $('loginBox').hidden=true;$('botLink').hidden=true;$('relogin').hidden=true;
+  $('loginBox').hidden=true;$('botLink').hidden=true;$('relogin').hidden=true;$('tgOpen').hidden=true;$('orPhone').hidden=true;
 }
 function setToken(v){TOKEN=v;try{v?localStorage.setItem('rf-token',v):localStorage.removeItem('rf-token')}catch{}}
 let BOT='';
@@ -398,6 +404,9 @@ async function botName(){if(!BOT){try{BOT=(await api('config')).bot||''}catch{}}
 async function showLogin(text){
   gate(text||t('webLogin'),false);
   const bot=await botName();if(!bot)return;
+  /* Главный путь: ссылка на мини-приложение бота — Telegram откроется сам и подпишет вход */
+  const a=$('tgOpen');a.href=`https://t.me/${bot}/rifm`;a.textContent=t('openTg');a.hidden=false;
+  $('orPhone').textContent=t('orPhone');$('orPhone').hidden=false;
   const box=$('loginBox');box.hidden=false;box.innerHTML='';
   const s=document.createElement('script');s.async=true;s.src='https://telegram.org/js/telegram-widget.js?22';
   s.setAttribute('data-telegram-login',bot);s.setAttribute('data-size','large');s.setAttribute('data-radius','6');
